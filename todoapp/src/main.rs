@@ -2,14 +2,19 @@ use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
 
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct Task {
+    text: String,
+    completed: bool,
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct MyApp {
-    tasks: Vec<String>,      // unfinished tasks
+    tasks: Vec<Task>,
     new_task: String,
 }
 
 impl MyApp {
-    // Load tasks from a file on startup
     fn load_tasks_from_file() -> Self {
         if let Ok(data) = fs::read_to_string("tasks.json") {
             if let Ok(app) = serde_json::from_str(&data) {
@@ -19,9 +24,13 @@ impl MyApp {
         Self::default()
     }
 
-    // Save tasks to a file
     fn save_tasks_to_file(&self) {
-        let _ = fs::write("tasks.json", serde_json::to_string_pretty(&self).unwrap());
+        // Only save unfinished tasks
+        let unfinished: Vec<Task> = self.tasks.iter()
+            .filter(|t| !t.completed)
+            .cloned()
+            .collect();
+        let _ = fs::write("tasks.json", serde_json::to_string_pretty(&unfinished).unwrap());
     }
 }
 
@@ -35,42 +44,47 @@ impl eframe::App for MyApp {
             (egui::TextStyle::Body, egui::FontId::new(18.0, egui::FontFamily::Proportional)),
             (egui::TextStyle::Button, egui::FontId::new(18.0, egui::FontFamily::Proportional)),
         ].into();
-        style.spacing.item_spacing = egui::vec2(12.0, 12.0);
+        style.spacing.item_spacing = egui::vec2(10.0, 10.0);
         ctx.set_style(style);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("✅ Modern To-Do App");
             ui.add_space(10.0);
 
-            // Input for new task
+            // Input row for new task
             ui.horizontal(|ui| {
                 ui.add_sized([300.0, 30.0], egui::TextEdit::singleline(&mut self.new_task));
                 if ui.add_sized([80.0, 30.0], egui::Button::new("➕ Add")).clicked()
                     && !self.new_task.trim().is_empty()
                 {
-                    self.tasks.push(self.new_task.trim().to_string());
+                    self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false });
                     self.new_task.clear();
-                    self.save_tasks_to_file(); // Save after adding
+                    self.save_tasks_to_file();
                 }
             });
 
             ui.separator();
 
-            // Delete tasks safely
+            // Track tasks to remove
             let mut to_delete: Option<usize> = None;
-            for (i, task) in self.tasks.iter().enumerate() {
+
+            // Display tasks with checkbox + delete button
+            for (i, task) in self.tasks.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
-                    ui.label(task);
+                    ui.checkbox(&mut task.completed, "");
+                    ui.label(&task.text);
                     if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
                         to_delete = Some(i);
                     }
                 });
             }
 
+            // Remove tasks that are completed or deleted
             if let Some(i) = to_delete {
                 self.tasks.remove(i);
-                self.save_tasks_to_file(); // Save after deleting
             }
+            self.tasks.retain(|t| !t.completed); // remove completed tasks
+            self.save_tasks_to_file();
         });
     }
 }
@@ -80,6 +94,6 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "ToDo App",
         options,
-        Box::new(|_cc| Ok(Box::new(MyApp::load_tasks_from_file()))), // Load saved tasks
+        Box::new(|_cc| Ok(Box::new(MyApp::load_tasks_from_file()))),
     )
 }
