@@ -6,10 +6,9 @@ Download Cargo if not already.
 Download Visual Studio Build Tools 2022. 
 
 
-This is using a egui application to popup a window to visual see what task need to be done. 
+This is using a eframe application to popup a window to visual see what task need to be done. 
 
 To run application,
-cargo clean 
-cargo build
+cargo add eframe 
 cargo run
 
