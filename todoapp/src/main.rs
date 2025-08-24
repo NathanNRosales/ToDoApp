@@ -15,10 +15,13 @@ struct MyApp {
 }
 
 impl MyApp {
-    fn load_tasks_from_file() -> Self {
+   fn load_tasks_from_file() -> Self {
         if let Ok(data) = fs::read_to_string("tasks.json") {
-            if let Ok(app) = serde_json::from_str(&data) {
-                return app;
+            if let Ok(tasks) = serde_json::from_str::<Vec<Task>>(&data) {
+                return Self {
+                    tasks,
+                    new_task: String::new(),
+                };
             }
         }
         Self::default()
@@ -26,11 +29,18 @@ impl MyApp {
 
     fn save_tasks_to_file(&self) {
         // Only save unfinished tasks
-        let unfinished: Vec<Task> = self.tasks.iter()
+        /* 
+       let unfinished: Vec<Task> = self.tasks.iter()
             .filter(|t| !t.completed)
             .cloned()
             .collect();
         let _ = fs::write("tasks.json", serde_json::to_string_pretty(&unfinished).unwrap());
+             */
+        //saves both finished and nonfinished but not deleted
+        if let Ok(json) = serde_json::to_string_pretty(&self.tasks){
+            let _ = fs::write("tasks.json",json);
+        } 
+      
     }
 }
 
@@ -70,21 +80,29 @@ impl eframe::App for MyApp {
 
             // Display tasks with checkbox + delete button
             for (i, task) in self.tasks.iter_mut().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.checkbox(&mut task.completed, "");
-                    ui.label(&task.text);
-                    if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
-                        to_delete = Some(i);
-                    }
-                });
-            }
+                    ui.horizontal(|ui| {
+                     ui.checkbox(&mut task.completed, "");
+                     if task.completed {
+                         ui.label(egui::RichText::new(&task.text).strikethrough().color(egui::Color32::LIGHT_GRAY));
+                     } else {
+                      ui.label(&task.text);
+                     }
 
-            // Remove tasks that are completed or deleted
-            if let Some(i) = to_delete {
-                self.tasks.remove(i);
-            }
-            self.tasks.retain(|t| !t.completed); // remove completed tasks
-            self.save_tasks_to_file();
+                 if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
+                          to_delete = Some(i);
+        }
+    });
+}
+
+// Remove only deleted tasks
+        if let Some(i) = to_delete {
+         self.tasks.remove(i);
+        
+        }
+
+// Save all tasks including completed ones
+        self.save_tasks_to_file();
+
         });
     }
 }

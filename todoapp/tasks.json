@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "text": "adadfafas",
+    "completed": false
+  },
+  {
+    "text": "r6",
+    "completed": true
+  },
+  {
+    "text": "clean gun",
+    "completed": false
+  },
+  {
+    "text": "do hw",
+    "completed": true
+  }
+]
