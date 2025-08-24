@@ -12,3 +12,12 @@ To run application,
 cargo add eframe 
 cargo run
 
+
+Now to create a desktop short cut.
+
+create build --release
+
+Locate target/release/todoapp.exe NOW go to file explorer and find that path. Right click on 
+todoapp.exe and create a shortcut. 
+
+Now usable whenever you please.

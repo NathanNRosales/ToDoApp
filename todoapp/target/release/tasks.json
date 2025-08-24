@@ -6,5 +6,9 @@
   {
     "text": "study more Rust Language",
     "completed": false
+  },
+  {
+    "text": "take breaks",
+    "completed": false
   }
 ]
