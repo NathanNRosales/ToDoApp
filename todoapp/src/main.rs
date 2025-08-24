@@ -1,6 +1,9 @@
+#![windows_subsystem = "windows"]
+
 use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
+
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct Task {
@@ -28,20 +31,14 @@ impl MyApp {
     }
 
     fn save_tasks_to_file(&self) {
-        // Only save unfinished tasks
-        /* 
-       let unfinished: Vec<Task> = self.tasks.iter()
-            .filter(|t| !t.completed)
-            .cloned()
-            .collect();
-        let _ = fs::write("tasks.json", serde_json::to_string_pretty(&unfinished).unwrap());
-             */
+       
         //saves both finished and nonfinished but not deleted
         if let Ok(json) = serde_json::to_string_pretty(&self.tasks){
             let _ = fs::write("tasks.json",json);
         } 
       
     }
+  
 }
 
 impl eframe::App for MyApp {
@@ -70,6 +67,7 @@ impl eframe::App for MyApp {
                     self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false });
                     self.new_task.clear();
                     self.save_tasks_to_file();
+                   
                 }
             });
 
@@ -78,21 +76,43 @@ impl eframe::App for MyApp {
             // Track tasks to remove
             let mut to_delete: Option<usize> = None;
 
-            // Display tasks with checkbox + delete button
-            for (i, task) in self.tasks.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                     ui.checkbox(&mut task.completed, "");
-                     if task.completed {
-                         ui.label(egui::RichText::new(&task.text).strikethrough().color(egui::Color32::LIGHT_GRAY));
-                     } else {
-                      ui.label(&task.text);
-                     }
+             // -----------------
+            // Incomplete tasks
+            // -----------------
+            ui.heading("📝 To Do");
+            for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| !t.completed) {
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut task.completed, "");
+                    ui.label(&task.text);
 
-                 if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
-                          to_delete = Some(i);
-        }
-    });
-}
+                    if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
+                        to_delete = Some(i);
+                    }
+                });
+            }
+
+            ui.add_space(15.0);
+            ui.separator();
+
+            // -----------------
+            // Completed tasks
+            // -----------------
+            ui.heading("✅ Completed");
+            for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| t.completed) {
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut task.completed, "");
+                    ui.label(
+                        egui::RichText::new(&task.text)
+                            .strikethrough()
+                            .color(egui::Color32::LIGHT_GRAY),
+                    );
+
+                    if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
+                        to_delete = Some(i);
+                    }
+                });
+            }
+            
 
 // Remove only deleted tasks
         if let Some(i) = to_delete {
