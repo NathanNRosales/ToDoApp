@@ -3,12 +3,15 @@
 use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
+use chrono::{DateTime,Local}; 
 
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct Task {
     text: String,
     completed: bool,
+    created_at: DateTime<Local>,
+    completed_at: Option<DateTime<Local>>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -64,7 +67,7 @@ impl eframe::App for MyApp {
                 if ui.add_sized([80.0, 30.0], egui::Button::new("➕ Add")).clicked()
                     && !self.new_task.trim().is_empty()
                 {
-                    self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false });
+                    self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false, created_at: Local::now(), completed_at: None });
                     self.new_task.clear();
                     self.save_tasks_to_file();
                    
@@ -82,8 +85,16 @@ impl eframe::App for MyApp {
             ui.heading("📝 To Do");
             for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| !t.completed) {
                 ui.horizontal(|ui| {
-                    ui.checkbox(&mut task.completed, "");
+                    let changed = ui.checkbox(&mut task.completed, "").changed();
+                    if changed {
+                        if task.completed{
+                            task.completed_at = Some(Local::now());
+                        }else {
+                            task.completed_at = None;
+                        }
+                    }
                     ui.label(&task.text);
+                    ui.label(format!("created: {}", task.created_at.format("%Y-%m-%d %H:%M:%S")));
 
                     if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
                         to_delete = Some(i);
@@ -100,13 +111,29 @@ impl eframe::App for MyApp {
             ui.heading("✅ Completed");
             for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| t.completed) {
                 ui.horizontal(|ui| {
-                    ui.checkbox(&mut task.completed, "");
+
+                    let changed = ui.checkbox(&mut task.completed,"").changed();
+
+                    if changed {
+                        if task.completed{
+                            task.completed_at = Some(Local::now());
+                        }
+                        else{
+                            task.completed_at = None;
+                        }
+                    }
+
+                    //ui.checkbox(&mut task.completed, "");
                     ui.label(
                         egui::RichText::new(&task.text)
                             .strikethrough()
                             .color(egui::Color32::LIGHT_GRAY),
                     );
 
+                    if let Some(completed_at) = task.completed_at {
+                        ui.label(format!("Completed: {}", completed_at.format("%Y-%m-%d %H:%M:%S")));
+                    }
+                   
                     if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
                         to_delete = Some(i);
                     }

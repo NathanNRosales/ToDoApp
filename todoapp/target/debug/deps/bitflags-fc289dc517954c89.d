@@ -1,0 +1,12 @@
+C:\Users\Haloh\Desktop\ToDoApp\todoapp\target\debug\deps\bitflags-fc289dc517954c89.d: C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\lib.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\iter.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\parser.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\traits.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\public.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\internal.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external\serde.rs
+
+C:\Users\Haloh\Desktop\ToDoApp\todoapp\target\debug\deps\libbitflags-fc289dc517954c89.rmeta: C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\lib.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\iter.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\parser.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\traits.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\public.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\internal.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external.rs C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external\serde.rs
+
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\lib.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\iter.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\parser.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\traits.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\public.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\internal.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external.rs:
+C:\Users\Haloh\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bitflags-2.9.3\src\external\serde.rs:
