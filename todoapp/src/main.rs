@@ -85,6 +85,7 @@ impl eframe::App for MyApp {
             ui.heading("📝 To Do");
             for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| !t.completed) {
                 ui.horizontal(|ui| {
+
                     let changed = ui.checkbox(&mut task.completed, "").changed();
                     if changed {
                         if task.completed{
@@ -93,6 +94,7 @@ impl eframe::App for MyApp {
                             task.completed_at = None;
                         }
                     }
+
                     ui.label(&task.text);
                     ui.label(format!("created: {}", task.created_at.format("%Y-%m-%d %H:%M:%S")));
 
@@ -105,10 +107,18 @@ impl eframe::App for MyApp {
             ui.add_space(15.0);
             ui.separator();
 
+
+
             // -----------------
             // Completed tasks
             // -----------------
-            ui.heading("✅ Completed");
+           ui.horizontal(|ui| {ui.heading("✅ Completed"); 
+            
+            if ui.add(egui::Button::new("🗑️")).clicked(){
+               self.tasks.retain(|task|!task.completed);
+            }
+         });
+            
             for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| t.completed) {
                 ui.horizontal(|ui| {
 
