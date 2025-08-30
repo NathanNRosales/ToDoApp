@@ -18,7 +18,10 @@ struct Task {
 struct MyApp {
     tasks: Vec<Task>,
     new_task: String,
+    
 }
+
+
 
 impl MyApp {
    fn load_tasks_from_file() -> Self {
@@ -41,12 +44,79 @@ impl MyApp {
         } 
       
     }
+
+
+    fn show_calender(&mut self, ctx: &egui::Context) {
+        use chrono ::{Datelike, Local, NaiveDate};
+
+              egui::Window::new("📅 Calendar")
+            .default_size([220.0, 200.0])
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::RIGHT_TOP, [-10.0, 10.0]) // fixed top-right
+            .show(ctx, |ui| {
+                let today = Local::now().date_naive();
+                let (year, month) = (today.year(), today.month());
+
+                // Month + Year header
+                ui.heading(format!("{} {}", month, year));
+
+                // Weekday headers
+                ui.horizontal(|ui| {
+                    for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] {
+                        ui.label(day);
+                    }
+                });
+
+                  egui::Grid::new("calendar_grid").show(ui, |ui| {
+                    let first_day = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+                    let start_weekday = first_day.weekday().num_days_from_monday() as i64;
+
+                    let next_month = if month == 12 {
+                        NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+                    } else {
+                        NaiveDate::from_ymd_opt(year, month + 1, 1).unwrap()
+                    };
+
+                    let days_in_month =
+                        (next_month - first_day).num_days() as i64;
+
+                    // Empty slots before the 1st
+                    for _ in 0..start_weekday {
+                        ui.label(" ");
+                    }
+
+                    // Fill days
+                    for day in 1..=days_in_month {
+                        let text = if day == today.day() as i64{
+                            egui::RichText::new(day.to_string())
+                                .strong()
+                                .color(egui::Color32::LIGHT_BLUE)
+                        } else {
+                            egui::RichText::new(day.to_string())
+                        };
+
+                        ui.label(text);
+
+                        if (day + start_weekday) % 7 == 0 {
+                            ui.end_row();
+                        }
+                    }
+                });
+            });
+        }
+    
+
+
+   
   
 }
+
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_visuals(egui::Visuals::dark());
+
 
         let mut style = (*ctx.style()).clone();
         style.text_styles = [
@@ -133,7 +203,6 @@ impl eframe::App for MyApp {
                         }
                     }
 
-                    //ui.checkbox(&mut task.completed, "");
                     ui.label(
                         egui::RichText::new(&task.text)
                             .strikethrough()
@@ -161,6 +230,9 @@ impl eframe::App for MyApp {
         self.save_tasks_to_file();
 
         });
+
+
+        self.show_calender(ctx);
     }
 }
 
