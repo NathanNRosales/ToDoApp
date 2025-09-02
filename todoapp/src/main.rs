@@ -3,14 +3,15 @@
 use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
-use chrono::{DateTime,Local}; 
+use chrono::{DateTime,Local, NaiveDate};
+
 
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct Task {
-    text: String,
-    completed: bool,
-    created_at: DateTime<Local>,
+    text: String,  
+    completed: bool, 
+    created_at: DateTime<Local>, 
     completed_at: Option<DateTime<Local>>,
 }
 
@@ -18,9 +19,8 @@ struct Task {
 struct MyApp {
     tasks: Vec<Task>,
     new_task: String,
-    
+    selected_date: Option<NaiveDate>,
 }
-
 
 
 impl MyApp {
@@ -30,6 +30,7 @@ impl MyApp {
                 return Self {
                     tasks,
                     new_task: String::new(),
+                    ..Default::default()
                 };
             }
         }
@@ -45,13 +46,13 @@ impl MyApp {
       
     }
 
-
+    /* need to figure out way to show previous months */
     fn show_calender(&mut self, ctx: &egui::Context) {
         use chrono ::{Datelike, Local, NaiveDate};
 
               egui::Window::new("📅 Calendar")
-            .default_size([220.0, 200.0])
-            .collapsible(false)
+            .default_size([200.0, 200.0])
+            .collapsible(true)
             .resizable(false)
             .anchor(egui::Align2::RIGHT_TOP, [-10.0, 10.0]) // fixed top-right
             .show(ctx, |ui| {
@@ -59,19 +60,19 @@ impl MyApp {
                 let (year, month) = (today.year(), today.month());
 
                 // Month + Year header
-                ui.heading(format!("{} {}", month, year));
-
+                ui.heading(today.format("%B %Y").to_string()); // format and != format!
+                
                 // Weekday headers
                 ui.horizontal(|ui| {
                     for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] {
                         ui.label(day);
+                        ui.add_space(18.0);
                     }
                 });
 
                   egui::Grid::new("calendar_grid").show(ui, |ui| {
                     let first_day = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
                     let start_weekday = first_day.weekday().num_days_from_monday() as i64;
-
                     let next_month = if month == 12 {
                         NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
                     } else {
@@ -84,32 +85,65 @@ impl MyApp {
                     // Empty slots before the 1st
                     for _ in 0..start_weekday {
                         ui.label(" ");
+                        
                     }
 
                     // Fill days
                     for day in 1..=days_in_month {
-                        let text = if day == today.day() as i64{
+                        let _text = if day == today.day() as i64{
                             egui::RichText::new(day.to_string())
                                 .strong()
                                 .color(egui::Color32::LIGHT_BLUE)
+                                
                         } else {
                             egui::RichText::new(day.to_string())
                         };
-
-                        ui.label(text);
+                        
+                        //ui.button(text); to stop duplication of days 
+                        let date = NaiveDate::from_ymd_opt(year, month as u32, day as u32).unwrap();
+                        if date <= today {
+                        if ui.button(day.to_string()).clicked() {
+                                self.selected_date = Some(date);
+                            }   
+                        } else {
+                            ui.label(day.to_string());
+                        }
 
                         if (day + start_weekday) % 7 == 0 {
                             ui.end_row();
                         }
                     }
+
                 });
+
+                //saved data on current day, needs ui work
+                if let Some(selected) = self.selected_date {
+                    ui.add_space(10.0); // optional spacing
+                    ui.heading(format!("Tasks completed on {}",selected));
+
+                        let tasks_for_day: Vec<&Task> = self.tasks
+                            .iter()
+                            .filter(|task| {
+                                if let Some(completed_at) = task.completed_at {
+                                    completed_at.date_naive() == selected
+                                } else {
+                                    false
+                                }
+                            })
+                            .collect();
+
+                        if tasks_for_day.is_empty() {
+                            ui.label("No tasks completed on this day.");
+                        } else {
+                            for task in tasks_for_day {
+                                ui.label(&task.text); //displays the tasked checked on that day will leave sample to see this.
+                            }
+                        }
+                    }
             });
         }
-    
 
-
-   
-  
+        
 }
 
 
