@@ -20,10 +20,13 @@ struct MyApp {
     tasks: Vec<Task>,
     new_task: String,
     selected_date: Option<NaiveDate>,
+    current_year: i32,
+    current_month: u32,
 }
 
 
 impl MyApp {
+
    fn load_tasks_from_file() -> Self {
         if let Ok(data) = fs::read_to_string("tasks.json") {
             if let Ok(tasks) = serde_json::from_str::<Vec<Task>>(&data) {
@@ -35,6 +38,7 @@ impl MyApp {
             }
         }
         Self::default()
+        
     }
 
     fn save_tasks_to_file(&self) {
@@ -46,9 +50,12 @@ impl MyApp {
       
     }
 
+    
+
     /* need to figure out way to show previous months */
     fn show_calender(&mut self, ctx: &egui::Context) {
         use chrono ::{Datelike, Local, NaiveDate};
+       
 
               egui::Window::new("📅 Calendar")
             .default_size([200.0, 200.0])
@@ -58,7 +65,7 @@ impl MyApp {
             .show(ctx, |ui| {
                 let today = Local::now().date_naive();
                 let (year, month) = (today.year(), today.month());
-
+              
                 // Month + Year header
                 ui.heading(today.format("%B %Y").to_string()); // format and != format!
                 
