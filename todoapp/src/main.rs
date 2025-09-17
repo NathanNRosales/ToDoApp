@@ -3,8 +3,7 @@
 use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
-use chrono::{DateTime,Local, NaiveDate, Datelike};
-
+use chrono::{DateTime,Local, NaiveDate, Datelike,NaiveDateTime, TimeZone};
 
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -22,6 +21,7 @@ struct MyApp {
     selected_date: Option<NaiveDate>,
     current_year: i32,
     current_month: u32,
+    last_active_date: NaiveDate,
 }
 
 
@@ -51,6 +51,11 @@ impl MyApp {
         if app.current_month == 0 {
             app.current_month = today.month();
         }
+        if app.last_active_date == NaiveDate::from_ymd_opt(0, 1, 1).unwrap_or(today){
+
+            app.last_active_date = today;
+
+        }
 
         app
     }
@@ -66,7 +71,6 @@ impl MyApp {
       
     }
 
-    
     
     fn show_calender(&mut self, ctx: &egui::Context) {
         use chrono ::{Datelike, Local, NaiveDate};
@@ -213,9 +217,24 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        
+        let today = chrono::Local::now().date_naive();
+        if today > self.last_active_date {
+            for task in &mut self.tasks {
+                if task.completed {
+                   let _completed_time = Local.from_local_datetime( &self.last_active_date.and_hms(23,59,59)).unwrap();
+                }
+                //task.completed = false;
+            }
+            self.last_active_date = today;
+            self.current_year = today.year();
+            self.current_month = today.month();
+            self.save_tasks_to_file();
+        }
+
+        
+        
         ctx.set_visuals(egui::Visuals::dark());
-
-
         let mut style = (*ctx.style()).clone();
         style.text_styles = [
             (egui::TextStyle::Heading, egui::FontId::new(28.0, egui::FontFamily::Proportional)),
@@ -247,6 +266,7 @@ impl eframe::App for MyApp {
             // Track tasks to remove
             let mut to_delete: Option<usize> = None;
 
+
              // -----------------
             // Incomplete tasks
             // -----------------
@@ -261,6 +281,7 @@ impl eframe::App for MyApp {
                         }else {
                             task.completed_at = None;
                         }
+                        
                     }
 
                     ui.label(&task.text);
@@ -270,7 +291,9 @@ impl eframe::App for MyApp {
                         to_delete = Some(i);
                     }
                 });
+
             }
+            
 
             ui.add_space(15.0);
             ui.separator();
@@ -299,6 +322,7 @@ impl eframe::App for MyApp {
                         else{
                             task.completed_at = None;
                         }
+                        
                     }
 
                     ui.label(
