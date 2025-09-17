@@ -3,7 +3,7 @@
 use serde::{Serialize, Deserialize};
 use std::fs;
 use eframe::egui;
-use chrono::{DateTime,Local, NaiveDate};
+use chrono::{DateTime,Local, NaiveDate, Datelike};
 
 
 
@@ -27,19 +27,35 @@ struct MyApp {
 
 impl MyApp {
 
+    
    fn load_tasks_from_file() -> Self {
-        if let Ok(data) = fs::read_to_string("tasks.json") {
+        let today = chrono::Local::now().date_naive();
+        let mut app = if let Ok(data) = fs::read_to_string("tasks.json") {
             if let Ok(tasks) = serde_json::from_str::<Vec<Task>>(&data) {
-                return Self {
+                Self {
                     tasks,
                     new_task: String::new(),
                     ..Default::default()
-                };
+                }
+            } else {
+                Self::default()
             }
+        } else {
+            Self::default()
+        };
+
+        // Initialize current year/month if zero
+        if app.current_year == 0 {
+            app.current_year = today.year();
         }
-        Self::default()
-        
+        if app.current_month == 0 {
+            app.current_month = today.month();
+        }
+
+        app
     }
+
+       
 
     fn save_tasks_to_file(&self) {
        
@@ -51,11 +67,9 @@ impl MyApp {
     }
 
     
-
-    /* need to figure out way to show previous months */
+    
     fn show_calender(&mut self, ctx: &egui::Context) {
         use chrono ::{Datelike, Local, NaiveDate};
-       
 
               egui::Window::new("📅 Calendar")
             .default_size([200.0, 200.0])
@@ -63,12 +77,53 @@ impl MyApp {
             .resizable(false)
             .anchor(egui::Align2::RIGHT_TOP, [-10.0, 10.0]) // fixed top-right
             .show(ctx, |ui| {
+
                 let today = Local::now().date_naive();
-                let (year, month) = (today.year(), today.month());
-              
-                // Month + Year header
-                ui.heading(today.format("%B %Y").to_string()); // format and != format!
-                
+                //let (year, month) = (today.year(), today.month());
+                let (year, month) = (self.current_year, self.current_month);
+
+                ui.horizontal(|ui|{
+                  if ui.button("Prev").clicked() {
+                    if self.current_month <= 1 {
+                        self.current_month = 12;
+                        self.current_year -= 1;
+                    } else {
+                        self.current_month -= 1;
+                    }
+                    if self.current_month < 1 || self.current_month > 12 {
+                        self.current_month = 1; // fallback
+                    }
+                }
+
+                ui.horizontal(|ui|{
+                    if ui.button("Next").clicked(){
+                        if self.current_month >= 12{
+                            self.current_month = 1;
+                            self.current_year += 1;
+                        } else{
+                            self.current_month += 1;
+                        }
+                    if self.current_month < 1 || self.current_month > 12 {
+                        self.current_month = 12;
+                    }
+                    }
+                })
+                    
+                });
+
+                let current_date = match NaiveDate::from_ymd_opt(self.current_year, self.current_month, 1) {
+                    Some(d) => d,
+                    None => {
+                        // If invalid, fallback to today’s first day
+                        let today = Local::now().date_naive();
+                        self.current_year = today.year();
+                        self.current_month = today.month();
+                        NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap()
+                    }
+                };
+
+                ui.heading(current_date.format("%B %Y").to_string());
+
                 // Weekday headers
                 ui.horizontal(|ui| {
                     for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] {
@@ -80,6 +135,8 @@ impl MyApp {
                   egui::Grid::new("calendar_grid").show(ui, |ui| {
                     let first_day = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
                     let start_weekday = first_day.weekday().num_days_from_monday() as i64;
+                  
+
                     let next_month = if month == 12 {
                         NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
                     } else {
