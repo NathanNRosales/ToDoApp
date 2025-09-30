@@ -309,20 +309,27 @@ impl eframe::App for MyApp {
                self.tasks.retain(|task|!task.completed);
             }
          });
+         
             
-            for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| t.completed) {
+            for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| {
+                if let Some(completed_at) = t.completed_at {
+                    let today = Local::now().date_naive();
+                    let completed_day = completed_at.date_naive();
+                    // Only show tasks that were completed today
+                    completed_day == today
+                } else {
+                    false
+                }
+            }) {
                 ui.horizontal(|ui| {
-
-                    let changed = ui.checkbox(&mut task.completed,"").changed();
+                    let changed = ui.checkbox(&mut task.completed, "").changed();
 
                     if changed {
-                        if task.completed{
+                        if task.completed {
                             task.completed_at = Some(Local::now());
-                        }
-                        else{
+                        } else {
                             task.completed_at = None;
                         }
-                        
                     }
 
                     ui.label(
@@ -334,12 +341,15 @@ impl eframe::App for MyApp {
                     if let Some(completed_at) = task.completed_at {
                         ui.label(format!("Completed: {}", completed_at.format("%Y-%m-%d %H:%M:%S")));
                     }
-                   
-                    if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
+
+                    if ui
+                        .add(egui::Button::new("❌").fill(egui::Color32::DARK_RED))
+                        .clicked()
+                    {
                         to_delete = Some(i);
                     }
                 });
-            }
+ }
             
 
 // Remove only deleted tasks
