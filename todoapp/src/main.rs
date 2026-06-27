@@ -2,8 +2,8 @@
 
 use serde::{Serialize, Deserialize};
 use std::fs;
-use eframe::egui;
-use chrono::{DateTime,Local, NaiveDate, Datelike,NaiveDateTime, TimeZone};
+use eframe::egui::{self, accesskit::VerticalOffset};
+use chrono::{ DateTime, Local, NaiveDate, Datelike, NaiveDateTime, TimeZone};
 
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -76,17 +76,21 @@ impl MyApp {
         use chrono ::{Datelike, Local, NaiveDate};
 
               egui::Window::new("📅 Calendar")
-            .default_size([200.0, 200.0])
+            .default_size([200.0, 300.0])
             .collapsible(true)
             .resizable(false)
             .anchor(egui::Align2::RIGHT_TOP, [-10.0, 10.0]) // fixed top-right
             .show(ctx, |ui| {
 
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui|{
+
                 let today = Local::now().date_naive();
                 //let (year, month) = (today.year(), today.month());
                 let (year, month) = (self.current_year, self.current_month);
 
-                ui.horizontal(|ui|{
+                ui.horizontal(|ui|{ 
                   if ui.button("Prev").clicked() {
                     if self.current_month <= 1 {
                         self.current_month = 12;
@@ -99,8 +103,8 @@ impl MyApp {
                     }
                 }
 
-                ui.horizontal(|ui|{
-                    if ui.button("Next").clicked(){
+                    if ui.button("Next")
+                        .clicked(){
                         if self.current_month >= 12{
                             self.current_month = 1;
                             self.current_year += 1;
@@ -111,7 +115,15 @@ impl MyApp {
                         self.current_month = 12;
                     }
                     }
-                })
+
+                    if ui.button("Today").clicked(){
+                       
+                       let today = Local::now();
+                       
+                        self.current_year = today.year();
+                        self.current_month = today.month();
+                    }
+                
                     
                 });
 
@@ -209,9 +221,11 @@ impl MyApp {
                         }
                     }
             });
+         }); 
+        
         }
 
-        
+   
 }
 
 
@@ -300,9 +314,7 @@ impl eframe::App for MyApp {
 
 
 
-            // -----------------
-            // Completed tasks
-            // -----------------
+            
            ui.horizontal(|ui| {ui.heading("✅ Completed"); 
             
             if ui.add(egui::Button::new("🗑️")).clicked(){
