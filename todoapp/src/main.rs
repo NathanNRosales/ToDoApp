@@ -2,9 +2,10 @@
 
 use serde::{Serialize, Deserialize};
 use std::fs;
-use eframe::egui::{self, accesskit::VerticalOffset};
-use chrono::{ DateTime, Local, NaiveDate, Datelike, NaiveDateTime, TimeZone};
-
+use eframe::{egui, icon_data::from_png_bytes};
+use chrono::{DateTime, Local, NaiveDate, Datelike, TimeZone};
+mod Settings;
+//use Settings::show_settings_page;
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct Task {
@@ -15,17 +16,74 @@ struct Task {
 }
 
 #[derive(Serialize, Deserialize, Default)]
-struct MyApp {
-    tasks: Vec<Task>,
-    new_task: String,
-    selected_date: Option<NaiveDate>,
-    current_year: i32,
-    current_month: u32,
-    last_active_date: NaiveDate,
+pub struct MyApp {
+    pub tasks: Vec<Task>,
+    pub new_task: String,
+    pub selected_date: Option<NaiveDate>,
+    pub current_year: i32,
+    pub current_month: u32,
+    pub last_active_date: NaiveDate,
+
+    pub background_path: Option<String>,
+
+    #[serde(skip)]
+    pub background_texture: Option<egui::TextureHandle>,
+
+    #[serde(skip)]
+    pub current_page: AppPage,
+    pub dark_mode: bool,
+}
+
+
+
+#[derive(PartialEq)]
+pub enum AppPage {
+    ToDo,
+    Settings,
+}
+
+
+
+
+impl Default for AppPage {
+    fn default() -> Self {
+        AppPage::ToDo
+    }
 }
 
 
 impl MyApp {
+
+    fn load_background(&mut self, ctx: &egui::Context){
+
+        if self.background_texture.is_some(){
+            return;
+        }
+
+        if let Some(path) = &self.background_path {
+
+            if let Ok(image) = image::open(path) {
+                
+                let image = image.to_rgb8();
+
+                let size = [
+                    image.width() as usize,
+                    image.height() as usize, 
+                ];
+
+                let pixels = image.as_flat_samples();
+
+                let color_image = 
+                egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+
+                self.background_texture = Some(
+                    ctx.load_texture("background", color_image, Default::default())
+                );
+            }
+
+
+        }
+    }
 
     
    fn load_tasks_from_file() -> Self {
@@ -69,6 +127,18 @@ impl MyApp {
             let _ = fs::write("tasks.json",json);
         } 
       
+    }
+
+    fn show_setting(&mut self, ctx: &egui::Context) {
+
+           egui::Area::new("settings_button".into())
+        .anchor(egui::Align2::CENTER_TOP, [0.0, 10.0])
+        .show(ctx, |ui| {
+            if ui.button("⚙ Settings").clicked() {
+                self.current_page = AppPage::Settings;
+            }
+        });
+
     }
 
     
@@ -236,7 +306,12 @@ impl eframe::App for MyApp {
         if today > self.last_active_date {
             for task in &mut self.tasks {
                 if task.completed {
-                   let _completed_time = Local.from_local_datetime( &self.last_active_date.and_hms(23,59,59)).unwrap();
+                   let _completed_time = Local
+                   .from_local_datetime( 
+                    &self
+                        .last_active_date
+                        .and_hms_opt(23,59,59)
+                        .expect("Invalid Time")).unwrap();
                 }
                 //task.completed = false;
             }
@@ -258,53 +333,70 @@ impl eframe::App for MyApp {
         style.spacing.item_spacing = egui::vec2(10.0, 10.0);
         ctx.set_style(style);
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("✅ Modern To-Do App");
-            ui.add_space(10.0);
+        match self.current_page {
+            
+        AppPage::ToDo => {
 
-            // Input row for new task
-            ui.horizontal(|ui| {
-                ui.add_sized([300.0, 30.0], egui::TextEdit::singleline(&mut self.new_task));
-                if ui.add_sized([80.0, 30.0], egui::Button::new("➕ Add")).clicked()
-                    && !self.new_task.trim().is_empty()
-                {
-                    self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false, created_at: Local::now(), completed_at: None });
-                    self.new_task.clear();
-                    self.save_tasks_to_file();
-                   
-                }
+            self.load_background(ctx);
+
+            if let Some(texture) = &self.background_texture {
+                egui::Area::new("background".into())
+                .fixed_pos([0.0,0.0])
+                .show(ctx, |ui| {
+
+                ui.image(texture);
             });
+        }
+        
+            
 
-            ui.separator();
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui.heading("✅ Modern To-Do App");
+                ui.add_space(10.0);
 
-            // Track tasks to remove
-            let mut to_delete: Option<usize> = None;
-
-
-             // -----------------
-            // Incomplete tasks
-            // -----------------
-            ui.heading("📝 To Do");
-            for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| !t.completed) {
+                // Input row for new task
                 ui.horizontal(|ui| {
-
-                    let changed = ui.checkbox(&mut task.completed, "").changed();
-                    if changed {
-                        if task.completed{
-                            task.completed_at = Some(Local::now());
-                        }else {
-                            task.completed_at = None;
-                        }
-                        
-                    }
-
-                    ui.label(&task.text);
-                    ui.label(format!("created: {}", task.created_at.format("%Y-%m-%d %H:%M:%S")));
-
-                    if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
-                        to_delete = Some(i);
+                    ui.add_sized([300.0, 30.0], egui::TextEdit::singleline(&mut self.new_task));
+                    if ui.add_sized([80.0, 30.0], egui::Button::new("➕ Add")).clicked()
+                        && !self.new_task.trim().is_empty()
+                    {
+                        self.tasks.push(Task { text: self.new_task.trim().to_string(), completed: false, created_at: Local::now(), completed_at: None });
+                        self.new_task.clear();
+                        self.save_tasks_to_file();
+                    
                     }
                 });
+
+                ui.separator();
+
+                // Track tasks to remove
+                let mut to_delete: Option<usize> = None;
+
+
+                // -----------------
+                // Incomplete tasks
+                // -----------------
+                ui.heading("📝 To Do");
+                for (i, task) in self.tasks.iter_mut().enumerate().filter(|(_, t)| !t.completed) {
+                    ui.horizontal(|ui| {
+
+                        let changed = ui.checkbox(&mut task.completed, "").changed();
+                        if changed {
+                            if task.completed{
+                                task.completed_at = Some(Local::now());
+                            }else {
+                                task.completed_at = None;
+                            }
+                            
+                        }
+
+                        ui.label(&task.text);
+                        ui.label(format!("created: {}", task.created_at.format("%Y-%m-%d %H:%M:%S")));
+
+                        if ui.add(egui::Button::new("❌").fill(egui::Color32::DARK_RED)).clicked() {
+                            to_delete = Some(i);
+                        }
+                    });
 
             }
             
@@ -332,7 +424,10 @@ impl eframe::App for MyApp {
                 } else {
                     false
                 }
-            }) {
+            }) 
+            
+                {
+
                 ui.horizontal(|ui| {
                     let changed = ui.checkbox(&mut task.completed, "").changed();
 
@@ -360,28 +455,42 @@ impl eframe::App for MyApp {
                     {
                         to_delete = Some(i);
                     }
-                });
- }
+                    });
+                    }
             
 
-// Remove only deleted tasks
-        if let Some(i) = to_delete {
-         self.tasks.remove(i);
-        
-        }
+            
+                    if let Some(i) = to_delete {
+                        self.tasks.remove(i);
+                    }
 
-// Save all tasks including completed ones
-        self.save_tasks_to_file();
+                    self.save_tasks_to_file();
+
 
         });
+     }
+       
+         AppPage::Settings => {
+            Settings::show_settings_page(self, ctx);
 
-
-        self.show_calender(ctx);
     }
+}
+    
+            self.show_setting(ctx);
+            if self.current_page == AppPage::ToDo {
+                self.show_calender(ctx)
+            } 
+    }   
 }
 
 fn main() -> Result<(), eframe::Error> {
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        viewport : egui::ViewportBuilder::default()
+            .with_icon(
+                from_png_bytes(include_bytes!("../assests/todoapp_icon-3.png")).unwrap(), ),
+            
+            ..Default::default()
+    };
     eframe::run_native(
         "ToDo App",
         options,
