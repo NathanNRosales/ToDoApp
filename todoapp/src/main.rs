@@ -54,80 +54,69 @@ impl Default for AppPage {
 
 impl MyApp {
 
-    fn load_background(&mut self, ctx: &egui::Context){
+    fn load_background(&mut self, ctx: &egui::Context) {
+    if self.background_texture.is_some() {
+        return;
+    }
 
-        if self.background_texture.is_some(){
-            return;
+    let Some(path) = &self.background_path else { return };
+
+    match image::open(path) {
+        Ok(img) => {
+            let rgba = img.to_rgba8();                     // ← must be RGBA
+            let size = [rgba.width() as usize, rgba.height() as usize];
+            let pixels = rgba.as_flat_samples();
+
+            let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                size,
+                pixels.as_slice(),
+            );
+
+            self.background_texture = Some(
+                ctx.load_texture(
+                    "background",
+                    color_image,
+                    egui::TextureOptions::LINEAR,   
+                ),
+            );
         }
-
-        if let Some(path) = &self.background_path {
-
-            if let Ok(image) = image::open(path) {
-                
-                let image = image.to_rgb8();
-
-                let size = [
-                    image.width() as usize,
-                    image.height() as usize, 
-                ];
-
-                let pixels = image.as_flat_samples();
-
-                let color_image = 
-                egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
-
-                self.background_texture = Some(
-                    ctx.load_texture("background", color_image, Default::default())
-                );
-            }
-
-
+        Err(e) => {
+            eprintln!("Failed to load background image: {e}");
+            
         }
     }
+}
 
     
    fn load_tasks_from_file() -> Self {
-        let today = chrono::Local::now().date_naive();
-        let mut app = if let Ok(data) = fs::read_to_string("tasks.json") {
-            if let Ok(tasks) = serde_json::from_str::<Vec<Task>>(&data) {
-                Self {
-                    tasks,
-                    new_task: String::new(),
-                    ..Default::default()
-                }
-            } else {
-                Self::default()
-            }
-        } else {
-            Self::default()
-        };
+    let today = chrono::Local::now().date_naive();
 
-        // Initialize current year/month if zero
-        if app.current_year == 0 {
-            app.current_year = today.year();
-        }
-        if app.current_month == 0 {
-            app.current_month = today.month();
-        }
-        if app.last_active_date == NaiveDate::from_ymd_opt(0, 1, 1).unwrap_or(today){
+    let mut app = if let Ok(data) = fs::read_to_string("tasks.json") {
+        serde_json::from_str::<MyApp>(&data).unwrap_or_default()
+    } else {
+        Self::default()
+    };
 
-            app.last_active_date = today;
-
-        }
-
-        app
+    // keep the existing date initialisation logic
+    if app.current_year == 0 {
+        app.current_year = today.year();
+    }
+    if app.current_month == 0 {
+        app.current_month = today.month();
+    }
+    if app.last_active_date == NaiveDate::from_ymd_opt(0, 1, 1).unwrap_or(today) {
+        app.last_active_date = today;
     }
 
-       
+    app
+}
 
-    fn save_tasks_to_file(&self) {
        
-        //saves both finished and nonfinished but not deleted
-        if let Ok(json) = serde_json::to_string_pretty(&self.tasks){
-            let _ = fs::write("tasks.json",json);
-        } 
-      
+fn save_tasks_to_file(&self) {
+    if let Ok(json) = serde_json::to_string_pretty(self) {
+        let _ = fs::write("tasks.json", json);
     }
+}
 
     fn show_setting(&mut self, ctx: &egui::Context) {
 
@@ -340,17 +329,30 @@ impl eframe::App for MyApp {
             self.load_background(ctx);
 
             if let Some(texture) = &self.background_texture {
-                egui::Area::new("background".into())
-                .fixed_pos([0.0,0.0])
-                .show(ctx, |ui| {
+                let screen_rect = ctx.screen_rect();
 
-                ui.image(texture);
-            });
-        }
+                egui::Area::new(egui::Id::new("background"))
+                    .fixed_pos(screen_rect.min)
+                    .order(egui::Order::Background)   // behind everything
+                    .interactable(false)
+                    .show(ctx, |ui| {
+                        // Stretch the image to the whole window
+                        ui.painter().image(
+                            texture.id(),
+                            screen_rect,
+                            egui::Rect::from_min_max(
+                                egui::pos2(0.0, 0.0),
+                                egui::pos2(1.0, 1.0),
+                            ),
+                            egui::Color32::WHITE,
+                        );
+                    });
+                }
         
             
 
-            egui::CentralPanel::default().show(ctx, |ui| {
+            egui::CentralPanel::default().frame(egui::Frame::NONE).show(ctx, |ui| {
+                
                 ui.heading("✅ Modern To-Do App");
                 ui.add_space(10.0);
 

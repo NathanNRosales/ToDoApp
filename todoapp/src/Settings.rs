@@ -10,6 +10,7 @@ pub fn show_settings_page(app: &mut MyApp, ctx: &egui::Context) {
 
     egui::CentralPanel::default().show(ctx, |ui| {
 
+        
         ui.heading("⚙ Settings");
 
         ui.separator();
@@ -27,25 +28,25 @@ pub fn show_settings_page(app: &mut MyApp, ctx: &egui::Context) {
         ui.heading("Appearance");
 
 
-        if ui.button("🖼 Choose Background Image").clicked() {
-            
-            if let Some(path) = rfd::FileDialog::new()
-                .add_filter("Images", &["png", "jpg", "jpeg"])
-                .pick_file()
-            {
+      if ui.button("🖼 Choose Background Image").clicked() {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("Images", &["png", "jpg", "jpeg"])
+                    .pick_file()
+                {
+                    app.background_path = Some(path.to_string_lossy().to_string());
+                    app.background_texture = None;
+                    app.save_tasks_to_file();
+                }
+            }
 
-                app.background_path = Some(
-                    path.to_string_lossy().to_string()
-                );
-
-
-                // force reload next frame
-                app.background_texture = None;
-
-    }
-            
-
-        }
+            // Clear button – only show it when a background is set
+            if app.background_path.is_some() {
+                if ui.button("🗑 Clear Background").clicked() {
+                    app.background_path = None;
+                    app.background_texture = None;   // drop the texture
+                    app.save_tasks_to_file();        // persist the change
+                }
+            }
 
 
         ui.add_space(10.0);
